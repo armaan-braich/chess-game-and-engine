@@ -109,6 +109,7 @@ b_cm = False
 fifty_move_draw = 0
 fifty_draw = False
 insuff_draw = False
+repeat_draw = False
 
 board = [
     [brook, bknight, bbishop, bqueen, bking, bbishop, bknight, brook],
@@ -120,6 +121,8 @@ board = [
     [wpawn, wpawn, wpawn, wpawn, wpawn, wpawn, wpawn, wpawn],
     [wrook, wknight, wbishop, wqueen, wking, wbishop, wknight, wrook]
 ]
+
+all_boards = {}
 
 black_pieces = {
     "pawn": 8,
@@ -205,12 +208,13 @@ def draw_draw():
         message = "DRAW BY INSUFFICIENT"
         message2 = "MATERIAL"
     else:
-        message = "DRAW BY THREEFOLD REPETITION"
+        message = "DRAW BY THREEFOLD"
+        message2 = "REPETITION"
     text = font.render(message, True, color)
     text2 = font.render(message2, True, color)
     
     offsets = [(-2, -2), (2, -2), (-2, 2), (2, 2), (0, -2), (0, 2), (-2, 0), (2, 0)]
-    if (insuff_draw):
+    if (insuff_draw or repeat_draw):
         text1_rect = text.get_rect(center=(square_size * 4, square_size * 4 - 22))
         text2_rect = text2.get_rect(center=(square_size * 4, square_size * 4 + 22))
         for offset in offsets:
@@ -315,8 +319,6 @@ def sim_pawn(row, col, color, sim):
                 if (sim[r][c].color != color):
                     control[r][c] = 1
             elif (col != c and en_passant == (r, c)):
-                control[r][c] = 1
-            elif (col == c):
                 control[r][c] = 1
         if (sim[row + directions[0][0]][col] == None and sim[row + directions[0][0] * 2][col] == None and row == 3.5 - directions[0][0] * 2.5):
             control[row + directions[0][0] * 2][col] = 1
@@ -436,7 +438,7 @@ def legal_knight(row, col, color):
         illegal = check(color, sim_board, True)
         if (illegal):
             continue
-        if (r < 8 and r >+ 0 and c < 8 and c >= 0):
+        if (r < 8 and r >= 0 and c < 8 and c >= 0):
             if (board[r][c] != None):
                 if (board[r][c].color != color):
                     dots[r][c] = 1
@@ -472,36 +474,96 @@ def legal_king(row, col, color):
     if (board[row][col].color == "white"): # white castling
         castle_valid = True 
         if (wrk_moved == False and wk_moved == False): # kingside
+            if (board[7][7] != None and board[7][7].type != "rook"):
+                castle_valid = False
             for i in range (2):
                 if (board[row][col + i + 1] != None):
                     castle_valid = False
             if (castle_valid):
-                dots[row][col + 2] = 1
+                sim_board = copy.deepcopy(board)           
+                sim_board[row][col + 2] = wking
+                sim_board[row][col + 1] = wrook
+                sim_board[row][col + 3] = None
+                sim_board[row][col] = None
+                old_whiteking = white_king
+                white_king = (row, col + 2)
+                illegal = check(color, sim_board, True)
+                if (not illegal):
+                    white_king = (row, col + 1)
+                    rook_illegal = check(color, sim_board, True)
+                    if (not rook_illegal):
+                        dots[row][col + 2] = 1
+                white_king = old_whiteking
 
         castle_valid = True
         if (wrq_moved == False and wk_moved == False): # queenside
+            if (board[7][0] != None and board[7][0].type != "rook"):
+                castle_valid = False
             for i in range (3):
                 if (board[row][col - i - 1] != None):
                     castle_valid = False
             if (castle_valid):
-                dots[row][col - 2] = 1
+                sim_board = copy.deepcopy(board)           
+                sim_board[row][col - 2] = wking
+                sim_board[row][col - 1] = wrook
+                sim_board[row][col - 4] = None
+                sim_board[row][col] = None
+                old_whiteking = white_king
+                white_king = (row, col - 2)
+                illegal = check(color, sim_board, True)
+                if (not illegal):
+                    white_king = (row, col - 1)
+                    rook_illegal = check(color, sim_board, True)
+                    if (not rook_illegal):
+                        dots[row][col - 2] = 1
+                white_king = old_whiteking
 
     if (board[row][col].color == "black"): # black castling
         castle_valid = True 
         if (brk_moved == False and bk_moved == False): # kingside
+            if (board[0][7] != None and board[0][7].type != "rook"):
+                castle_valid = False
             for i in range (2):
                 if (board[row][col + i + 1] != None):
                     castle_valid = False
             if (castle_valid):
-                dots[row][col + 2] = 1
+                sim_board = copy.deepcopy(board)           
+                sim_board[row][col + 2] = bking
+                sim_board[row][col + 1] = brook
+                sim_board[row][col + 3] = None
+                sim_board[row][col] = None
+                old_blackking = black_king
+                black_king = (row, col + 2)
+                illegal = check(color, sim_board, True)
+                if (not illegal):
+                    black_king = (row, col + 1)
+                    rook_illegal = check(color, sim_board, True)
+                    if (not rook_illegal):
+                        dots[row][col + 2] = 1
+                black_king = old_blackking
 
         castle_valid = True
         if (brq_moved == False and bk_moved == False): # queenside
+            if (board[0][0] != None and board[0][0].type != "rook"):
+                castle_valid = False
             for i in range (3):
                 if (board[row][col - i - 1] != None):
                     castle_valid = False
             if (castle_valid):
-                dots[row][col - 2] = 1
+                sim_board = copy.deepcopy(board)           
+                sim_board[row][col - 2] = bking
+                sim_board[row][col - 1] = brook
+                sim_board[row][col - 4] = None
+                sim_board[row][col] = None
+                old_blackking = black_king
+                black_king = (row, col - 2)
+                illegal = check(color, sim_board, True)
+                if (not illegal):
+                    black_king = (row, col - 1)
+                    rook_illegal = check(color, sim_board, True)
+                    if (not rook_illegal):
+                        dots[row][col - 2] = 1
+                black_king = old_blackking
 
 def legal_queen(row, col, color):
     legal_bishop(row, col, color)
@@ -624,7 +686,25 @@ def insufficient_material():
     else: # draw
         return True
 
-    
+def board_toString():
+    toString_dict = {
+        "pawn": "p",
+        "bishop": "b",
+        "knight": "n",
+        "queen": "q",
+        "king": "k",
+        "rook": "r",
+    }
+    board_string = ""
+    for x in range(8):
+        for y in range(8):
+            if board[x][y] == None:
+                board_string += "x"
+            else:
+                board_string += "B" if board[x][y].color == "black" else "W"
+                board_string += toString_dict[board[x][y].type]
+    return board_string
+
 def score_board(color):
     pieces_map = {
         "pawn": 100,
@@ -649,10 +729,10 @@ def clear_dots():
 
 def mouse_click_move(pos):
     global selected_pos, selected_piece, turn, wk_moved, bk_moved, wrk_moved, brk_moved, wrq_moved, brq_moved, en_passant, promoting, white_king, black_king
-    global w_cm, b_cm, w_sm, b_sm, fifty_move_draw, fifty_draw, insuff_draw
+    global w_cm, b_cm, w_sm, b_sm, fifty_move_draw, fifty_draw, insuff_draw, repeat_draw, all_boards
     row, col = pos[1] // square_size, pos[0] // square_size
     print(f"Clicked on: Row {row}, Col {col}")
-    if (fifty_draw or insuff_draw):
+    if (fifty_draw or insuff_draw or repeat_draw):
         return
     if (promoting != None):
         if (col == promoting[1]):
@@ -660,12 +740,16 @@ def mouse_click_move(pos):
                 match row:
                     case 0:
                         board[promoting[0]][promoting[1]] = wqueen
+                        piece = "queen"
                     case 1:
                         board[promoting[0]][promoting[1]] = wrook
+                        piece = "rook"
                     case 2:
                         board[promoting[0]][promoting[1]] = wknight
+                        piece = "knight"
                     case 3:
                         board[promoting[0]][promoting[1]] = wbishop
+                        piece = "bishop"
                 if (row < 4 and row >= 0):
                     promoting = None
                     check("black", board, False)
@@ -683,8 +767,6 @@ def mouse_click_move(pos):
                     promoting = None
                     check("white", board, False)
         return
-                
-
 
     if selected_piece is None:
         selected_piece = board[row][col]
@@ -747,6 +829,15 @@ def mouse_click_move(pos):
             fifty_move_draw += 1
             if (selected_piece.type == "pawn" or prev_piece != None):
                 fifty_move_draw = 0
+
+            board_string = board_toString()
+            if board_string in all_boards:
+                all_boards[board_string] += 1
+            else:
+                all_boards[board_string] = 1
+
+            if (all_boards[board_string] == 3):
+                repeat_draw = True
             
             if (prev_piece != None):
                 if (turn == "white"):
@@ -799,7 +890,7 @@ while running:
     draw_pieces()
     if (w_sm or b_sm or w_cm or b_cm):
         draw_end()
-    if (fifty_draw or insuff_draw):
+    if (fifty_draw or insuff_draw or repeat_draw):
         draw_draw()
     pygame.display.flip()
     pygame.time.Clock().tick(60)
